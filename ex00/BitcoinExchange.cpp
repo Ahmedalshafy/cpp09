@@ -1,11 +1,35 @@
 #include "BitcoinExchange.hpp"
+#include <sstream>
+
+static int convertToInt(std::string str)
+{
+    int ret;
+    std::stringstream ss(str);
+    ss >> ret;
+    if (ss.fail())
+        throw BitcoinExchange::InvalidInput();
+    ss.clear();
+    return (ret);
+}
+
+static float convertToFloat(std::string str)
+{
+    float ret;
+    std::stringstream ss(str);
+    ss >> ret;
+    if (ss.fail() || ret < 0 || ret > 1000)
+        throw std::exception();
+    ss.clear();
+    return (ret);
+}
 
 BitcoinExchange::BitcoinExchange(std::map<std::string, float> data, std::string inputfile){
     _data = data;
     _inputfile = inputfile;
     try {
         readDataFromFile();
-        std::cout << this << std::endl;
+        // std::cout << "this: " << std::endl;
+        // this->printFinnalData();
     }
     catch (FileError &e){
         std::cerr << e.what() << std::endl;
@@ -19,7 +43,7 @@ BitcoinExchange::BitcoinExchange(const BitcoinExchange &src){
 BitcoinExchange &BitcoinExchange::operator=(const BitcoinExchange &src){
     if (this != &src){
         _data = src._data;
-        _finnalMap = src._finnalMap;
+        _inputfile = src._inputfile;
     }
     return *this;
 }
@@ -28,17 +52,20 @@ BitcoinExchange::~BitcoinExchange(){
 }
 
 void BitcoinExchange::readDataFromFile(){
-    std::ifstream file(_inputfile);
+    
+    std::ifstream file(_inputfile.c_str());
     if (!file.is_open())
-        throw FileError();
+    {
+        // throw FileError();
+        std::cerr << "Error: File " << _inputfile << " could not be opened" << std::endl;
+        return;
+    }
     getDataFromFile(file);
     file.close();
 }
 
 void BitcoinExchange::getDataFromFile(std::ifstream &file){
     std::string line;
-    std::string str;
-    std::array<std::string, 2> data_line;
     std::getline(file, line);
     if (line.empty())
         throw FileError();
@@ -46,32 +73,68 @@ void BitcoinExchange::getDataFromFile(std::ifstream &file){
         throw FileError();
     while (file.eof() == 0){
         std::getline(file, line);
+        std::cout << "line: " << line << std::endl;
         if (line.empty())
             break;
-        if (parseData(line))
-            searchForDate(_finnalMap[line].date);
+        if (!parseData(line))
+        {
+            std::cerr << "Error: Invalid data" << std::endl;
+        }
+        else
+        {
+            std::map<std::string, float>::iterator it = _data.find(finalData.date);
+            if (it == _data.end()){
+                it = _data.upper_bound(finalData.date);
+            }
+                finalData.rate = it->second;
+                finalData.finalValue = finalData.value * finalData.rate;
+            
+            std::cout << "date: " << finalData.date << " | value: " << finalData.value << " | rate: " 
+                << finalData.rate << " | finalValue: " << finalData.finalValue << std::endl;
+            // searchForDate(line.substr(0, 11));
+        }
+        // std::cout << "line: " << line << std::endl;
+        // std::cout << "date: " << line.substr(0, 11) << std::endl;
+        
     }   
 }
 
 bool BitcoinExchange::parseData(std::string line){
     std::string date;
     std::string value;
-    t_finnalData finalData;
 
-    if (line[5] != '-' || line[8] != '-' || line[11] != ' ' || line[12] != '|' || line[13] != ' ')
-            throw FileError();
+    if (line.length() < 14 || line[4] != '-' || line[7] != '-' || line[10] != ' ' 
+        || line[11] != '|' || line[12] != ' ')
+    {
+        finalData.date = "Invalid date";
+        return false;
+    }
     date = line.substr(0, 11);
     date = parseDate(date);
-    value = line.substr(14);
+    value = line.substr(13);
+    if (value.find('.') == std::string::npos)
+    {
+        try{
+            finalData.value = convertToInt(value);
+        }
+        catch (std::exception &e){
+            return false;
+        }
+    }
     finalData.date = date;
-    finalData.rate = std::stof(value);
-    _finnalMap[date] = finalData;
+    try {
+        finalData.value = convertToFloat(value);
+    }
+    catch (std::exception &e){
+        return false;
+    }
+    return true;
 }
 
 std::string BitcoinExchange::parseDate(std::string date){
-    int year = std::stoi(date.substr(0, 4));
-    int month = std::stoi(date.substr(5, 2));
-    int day = std::stoi(date.substr(8, 2));
+    int year = convertToInt(date.substr(0, 4));
+    int month = convertToInt(date.substr(5, 2));
+    int day = convertToInt(date.substr(8, 2));
     if (year < 2009 || (year == 2009 && month == 1 && day < 3))
         return "Invalid date" + date;
     if (month < 1 || month > 12)
@@ -85,31 +148,37 @@ std::string BitcoinExchange::parseDate(std::string date){
     return date;
 }
 
-void BitcoinExchange::searchForDate(std::string date){
-    std::map<std::string, float>::iterator it = _data.find(date);
-    if (it == _data.end()){
-        std::map<std::string, float>::iterator it = _data.upper_bound(date);
-    }
-    _finnalMap[date].value = it->second;
-    _finnalMap[date].finalValue = it->second * _finnalMap[date].rate;
-}
+// void BitcoinExchange::searchForDate(std::string date){
+//     std::map<std::string, float>::iterator it = _data.find(date);
+//     if (it == _data.end()){
+//         it = _data.upper_bound(date);
+//     }
+//     std::cout << "rate " << it->second << std::endl;
+//     _finnalMap[date].rate = it->second;
+//     _finnalMap[date].finalValue = _finnalMap[date].value * it->second;
+//     std::cout << "date: " << _finnalMap[date].date << " | value: " << _finnalMap[date].value << " | rate: " 
+//     << _finnalMap[date].rate << " | finalValue: " << _finnalMap[date].finalValue << std::endl;
+// }
 
-std::ofstream &operator<<(std::ofstream &file, BitcoinExchange &src){
-    src.printFinnalData();
-    return file;
-}
+// std::ofstream &operator<<(std::ofstream &file, BitcoinExchange &src){
+//     src.printFinnalData();
+//     return file;
+// }
 
-void BitcoinExchange::printFinnalData(){
-    std::map<std::string, t_finnalData>::iterator it = _finnalMap.begin();
-    while (it != _finnalMap.end()){
-        if (it->second.value < 0)
-            throw NEGATIVE_VALUE;
-        if (it->second.date == "Invalid date")
-            throw INVALID_DATE;
-        if (it->second.rate < 0)
-            throw INVALID_RATE;
-        else
-            std::cout << it->second.date << " | " << it->second.value << " | " 
-            << it->second.rate << " | " << it->second.finalValue << std::endl;
-    }
-}
+// void BitcoinExchange::printFinnalData(){
+//     std::map<std::string, t_finnalData>::iterator it = _finnalMap.begin();
+//     while (it != _finnalMap.end()){
+//         // std::cout << "date: " << it->second.date << " | value: " << it->second.value << " | rate: " << it->second.rate << " | finalValue: " << it->second.finalValue << std::endl;
+//         if (it->second.value < 0)
+//             std::cout << it->second.date << "Negative value" << std::endl;
+//         else if (it->second.date == "Invalid date")
+//             std::cout << it->second.date << std::endl;
+//         else if (it->second.rate < 0)
+//             std::cout << it->second.date << " | " << it->second.value << " | " 
+//             << "Invalid rate" << std::endl;
+//         else
+//             std::cout << it->second.date << " | " << it->second.value << " | " 
+//             << it->second.rate << " | " << it->second.finalValue << std::endl;
+//         it++;
+//     }
+// }

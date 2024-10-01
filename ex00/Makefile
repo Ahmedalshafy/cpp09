@@ -13,26 +13,25 @@ RESET		=	\e[0m
 CURSIVE		=	\e[33;3m
 
 # Targets
-SRC := BitcoinExchange.cpp main.cpp
+SRC := BitcoinExchange.cpp HandelFile.cpp
+MAIN := main.cpp
 INCLUDES := $(SRC:.cpp=.hpp)
 
 # Rules
 all: $(NAME)
 
-$(NAME): $(SRC)
-	$(CXX) -o $@ $(CXXFLAGS) $(SRC)
-	@echo "$(GREEN)Compilation successful!$(RESET)"
+$(NAME): $(SRC) $(MAIN) $(INCLUDES)
+	@$(CXX) $(CXXFLAGS) $(MAIN) $(SRC) -o $(NAME)
+	@printf "$(GREEN)Compilation successful!$(RESET)\n"
 
 clean:
-	rm -rf $(NAME)
-	@echo "$(YELLOW)Executable removed.$(RESET)"
-
-ifeq ($(valgrind_answer),y)
-valgrind:
-	@echo "$(CURSIVE)Running valgrind...$(RESET)"
-	valgrind --leak-check=full ./$(NAME)
-endif
+	@rm -rf $(NAME)
+	@printf "$(YELLOW)Executable removed.$(RESET)\n"
 
 re: clean all
 
-.PHONY: all clean re
+valgrind:
+	@printf "$(CURSIVE)Running valgrind...$(RESET)\n"
+	valgrind --leak-check=full ./$(NAME)
+
+.PHONY: all clean re valgrind

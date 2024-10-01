@@ -11,7 +11,7 @@ enum e_error {
 
 typedef struct s_finnalData {
     std::string date;
-    int value;
+    float value;
     float rate;
     float finalValue;
 } t_finnalData;
@@ -20,7 +20,7 @@ class BitcoinExchange {
     private:
         std::string _inputfile;
         std::map<std::string, float> _data;
-        std::map<std::string, t_finnalData> _finnalMap;
+        t_finnalData finalData;
 
     public:
         BitcoinExchange(std::map<std::string, float> data, std::string inputfile);
@@ -30,8 +30,8 @@ class BitcoinExchange {
         void getFinnalData();
         void readDataFromFile();
         void getDataFromFile(std::ifstream &file);
-        void searchForDate(std::string date);
-        void printFinnalData();
+        // void searchForDate(std::string date);
+        // void printFinnalData();
         bool parseData(std::string line);
         std::string parseDate(std::string date);
         class FileError : public std::exception {
@@ -40,6 +40,13 @@ class BitcoinExchange {
                     return "Ivalid file";
                 }
         };
+
+        class InvalidInput : public std::exception {
+            public:
+                virtual const char* what() const throw() {
+                    return "Invalid input";
+                }
+        };
 };
 
-std::ofstream &operator<<(std::ofstream &file, BitcoinExchange &src);
+// std::ofstream &operator<<(std::ofstream &file, BitcoinExchange &src);

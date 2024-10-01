@@ -25,27 +25,26 @@ HandelFile::~HandelFile(){
 }
 
 void HandelFile::readFile(){
-    std::ifstream file(_filename);
+    std::cout << "readFile" << std::endl;
+    std::ifstream file(_filename.c_str());
     if (!file.is_open()){
-        throw HandelFile::FileError();
+        std::cout << "Error: " << _filename << " could not be opened" << std::endl;
+        // throw HandelFile::FileError();
+        std::cerr << "Error: " << _filename << " could not be opened" << std::endl;
+        return;
     }
+    std::cout << "readFile" << std::endl;
     getDataFromFile(file);
     file.close();
 }
 
 void HandelFile::getDataFromFile(std::ifstream &file){
     std::string line;
-    std::array<std::string, 2> data_line;
     while (file.eof() == 0){
-        std::getline(file, line, ',');
-        if (line.empty())
-            break;
-        data_line[0] = line;
         std::getline(file, line);
         if (line.empty())
             break;
-        data_line[1] = line;
-        _data[data_line[0]] = convertExRate(data_line[1]);
+        _data[line.substr(0, 10)] = convertExRate(line.substr(11));
     }
 }
 
@@ -53,21 +52,22 @@ float HandelFile::convertExRate(std::string price){
     std::stringstream ss(price);
     float rate;
     ss >> rate;
-    if (ss.fail())
-        throw HandelFile::FileError();
+    // std::cout << "rate: " << rate << std::endl;
+    // if (ss.fail())
+    //     throw HandelFile::FileError();
     return rate;
 }
 
-static int convertToInt(std::string str)
-{
-    int ret;
-    std::stringstream ss(str);
-    ss >> ret;
-    if (ss.fail())
-        throw HandelFile::FileError();
-    ss.clear();
-    return (ret);
-}
+// static int convertToInt(std::string str)
+// {
+//     int ret;
+//     std::stringstream ss(str);
+//     ss >> ret;
+//     if (ss.fail())
+//         throw HandelFile::FileError();
+//     ss.clear();
+//     return (ret);
+// }
 
 std:: map<std::string, float> HandelFile::getData(){
     return _data;
