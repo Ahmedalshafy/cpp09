@@ -1,5 +1,5 @@
 # Program
-NAME := btc
+NAME := RPN
 # Necessities
 CXX := c++
 CXXFLAGS := -Wall -Wextra -Werror -std=c++98
@@ -13,14 +13,14 @@ CURSIVE		=	\e[33;3m
 
 # Targets
 MAIN := main.cpp
-SRCS := BitcoinExchange.cpp
-INCLUDES := BitcoinExchange.hpp
+SRC := RPN.cpp
+INCLUDES := RPN.hpp
 
 # Rules
 all: $(NAME)
 
-$(NAME): $(MAIN) $(SRCS) $(INCLUDES)
-	@$(CXX) $(CXXFLAGS) $(MAIN) $(SRCS) -o $(NAME)
+$(NAME): $(MAIN) $(INCLUDES) $(SRC)
+	@$(CXX) $(CXXFLAGS) $(MAIN) $(SRC) -o $(NAME)
 	@printf "$(GREEN)Compilation successful!$(RESET)\n"
 
 clean:

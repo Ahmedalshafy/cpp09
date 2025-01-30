@@ -1,184 +1,243 @@
 #include "BitcoinExchange.hpp"
-#include <sstream>
 
-static int convertToInt(std::string str)
+/**
+ * @brief Default constructor for BitcoinExchange class
+ */
+BitcoinExchange::BitcoinExchange() {}
+
+/**
+ * @brief Copy constructor for BitcoinExchange class
+ * @param other The BitcoinExchange object to copy from
+ */
+BitcoinExchange::BitcoinExchange(const BitcoinExchange& other) 
 {
-    int ret;
-    std::stringstream ss(str);
-    ss >> ret;
-    if (ss.fail())
-        throw BitcoinExchange::InvalidInput();
-    ss.clear();
-    return (ret);
+    *this = other;
 }
 
-static float convertToFloat(std::string str)
+/**
+ * @brief Assignment operator overload
+ * @param other The BitcoinExchange object to assign from
+ * @return Reference to the current object
+ */
+BitcoinExchange& BitcoinExchange::operator=(const BitcoinExchange& other) 
 {
-    float ret;
-    std::stringstream ss(str);
-    ss >> ret;
-    if (ss.fail() || ret < 0 || ret > 1000)
-        throw std::exception();
-    ss.clear();
-    return (ret);
-}
-
-BitcoinExchange::BitcoinExchange(std::map<std::string, float> data, std::string inputfile){
-    _data = data;
-    _inputfile = inputfile;
-    try {
-        readDataFromFile();
-        // std::cout << "this: " << std::endl;
-        // this->printFinnalData();
-    }
-    catch (FileError &e){
-        std::cerr << e.what() << std::endl;
-    }      
-}
-
-BitcoinExchange::BitcoinExchange(const BitcoinExchange &src){
-    *this = src;
-}
-
-BitcoinExchange &BitcoinExchange::operator=(const BitcoinExchange &src){
-    if (this != &src){
-        _data = src._data;
-        _inputfile = src._inputfile;
-    }
+    if (this != &other)
+        this->btcData = other.btcData;
     return *this;
 }
 
-BitcoinExchange::~BitcoinExchange(){
-}
+/**
+ * @brief Destructor for BitcoinExchange class
+ */
+BitcoinExchange::~BitcoinExchange() {}
 
-void BitcoinExchange::readDataFromFile(){
-    
-    std::ifstream file(_inputfile.c_str());
-    if (!file.is_open())
+/**
+ * @brief Parameterized constructor that initializes the object with data from a database file
+ * @param dbFilename Path to the database file containing Bitcoin exchange rates
+ */
+BitcoinExchange::BitcoinExchange(const std::string& dbFilename) {loadDatabase(dbFilename);}
+
+/**
+ * @brief Loads Bitcoin exchange rate data from a CSV file
+ * @param filename Path to the CSV file containing exchange rate data
+ * @details Format of CSV file should be: date,exchange_rate
+ *          The first line (header) is skipped during processing
+ * @throws Exits program if file cannot be opened
+ */
+void BitcoinExchange::loadDatabase(const std::string& filename) 
+{
+    // Open the database file in read mode
+    std::ifstream file(filename.c_str());
+    if (!file.is_open()) 
     {
-        // throw FileError();
-        std::cerr << "Error: File " << _inputfile << " could not be opened" << std::endl;
-        return;
+        std::cerr << "Error: could not open database file." << std::endl;
+        exit(1);
     }
-    getDataFromFile(file);
+
+    std::string line;
+    // Skip the CSV header (first line containing column names)
+    std::getline(file, line);
+
+    while (std::getline(file, line)) 
+    {
+        // Create a string stream to parse each CSV line
+        std::stringstream ss(line);
+        std::string date;
+        std::string valueStr;
+        float value;
+
+        // Extract date string (everything before the comma)
+        if (!std::getline(ss, date, ',')) 
+        {
+            std::cerr << "Error: bad input in database => " << line << std::endl;
+            continue;
+        }
+
+        // Extract value string (everything after the comma)
+        if (!std::getline(ss, valueStr)) 
+        {
+            std::cerr << "Error: bad input in database => " << line << std::endl;
+            continue;
+        }
+
+        // Convert string value to float, handle conversion errors
+        try 
+        {
+            value = customStof(valueStr);
+        } 
+        catch (const std::exception& e) 
+        {
+            std::cerr << "Error: bad input in database => " << line << std::endl;
+            continue;
+        }
+        
+        // Store the date-value pair in the btcData map
+        btcData[date] = value;
+    }
+    
     file.close();
 }
 
-void BitcoinExchange::getDataFromFile(std::ifstream &file){
-    std::string line;
+/**
+ * @brief Processes input file containing Bitcoin calculations
+ * @param inputFilename Path to the input file to process
+ * @details Format of input file should be: date | value
+ *          Validates dates, values, and performs calculations
+ *          Outputs results or appropriate error messages
+ */
+void BitcoinExchange::processInput(const std::string& inputFilename) const 
+{
+    // Open input file for processing
+    std::ifstream file(inputFilename.c_str());
+    if (!file.is_open()) 
+    {
+        std::cerr << "Error: could not open input file." << std::endl;
+        return;
+    }
+
+    std::string line; 
+    // Skip header line of input file
     std::getline(file, line);
-    if (line.empty())
-        throw FileError();
-    if (line != "date | value")
-        throw FileError();
-    while (file.eof() == 0){
-        std::getline(file, line);
-        std::cout << "line: " << line << std::endl;
-        if (line.empty())
-            break;
-        if (!parseData(line))
+
+    while (std::getline(file, line)) 
+    {
+        std::stringstream ss(line);
+        std::string date;
+        std::string valueStr;
+        double value;
+
+        // Parse date (everything before the '|' character)
+        if (!std::getline(ss, date, '|')) 
         {
-            std::cerr << "Error: Invalid data" << std::endl;
+            std::cerr << "Error: bad date => " << line << std::endl;
+            continue;
+        }
+
+        // Parse value (everything after the '|' character)
+        if (!std::getline(ss, valueStr)) 
+        {
+            std::cerr << "Error: bad value => " << line << std::endl;
+            continue;
+        }
+
+        // Remove leading and trailing whitespace from both date and value
+        date = date.substr(date.find_first_not_of(" \t"), date.find_last_not_of(" \t") - date.find_first_not_of(" \t") + 1);
+        valueStr = valueStr.substr(valueStr.find_first_not_of(" \t"), valueStr.find_last_not_of(" \t") - valueStr.find_first_not_of(" \t") + 1);
+
+        // Convert value string to double, handle conversion errors
+        try 
+        {
+            value = customStod(valueStr);
+        } 
+        catch (const std::exception& e) 
+        {
+            std::cerr << "Error: bad float input => " << line << std::endl;
+            continue;
+        }
+
+        // Validate date format (YYYY-MM-DD)
+        if (date.length() != 10 || date[4] != '-' || date[7] != '-') 
+        {
+            std::cerr << "Error: invalid date => " << line << std::endl;
+            continue;
+        }
+
+        // Validate value range (0-1000)
+        if (value < 0) 
+        {
+            std::cerr << "Error: not a positive number." << std::endl;
+            continue;
+        }
+        if (value > 1000) 
+        {
+            std::cerr << "Error: too large a number." << std::endl;
+            continue;
+        }
+
+        // Find the closest date in database that's not after the input date
+        std::map<std::string, double>::const_iterator it = btcData.lower_bound(date);
+        double result = 0;
+
+        // If exact date match found
+        if (it != btcData.end() && it->first == date)
+        {
+            result = value * it->second;
+        }
+        // If no exact match, use the closest previous date
+        else if (it != btcData.begin()) 
+        {
+            --it;  // Move to previous date
+            result = value * it->second;
         }
         else
         {
-            std::map<std::string, float>::iterator it = _data.find(finalData.date);
-            if (it == _data.end()){
-                it = _data.upper_bound(finalData.date);
-            }
-                finalData.rate = it->second;
-                finalData.finalValue = finalData.value * finalData.rate;
-            
-            std::cout << "date: " << finalData.date << " | value: " << finalData.value << " | rate: " 
-                << finalData.rate << " | finalValue: " << finalData.finalValue << std::endl;
-            // searchForDate(line.substr(0, 11));
+            std::cerr << "Error: date not found in database." << std::endl;
+            continue;
         }
-        // std::cout << "line: " << line << std::endl;
-        // std::cout << "date: " << line.substr(0, 11) << std::endl;
-        
-    }   
-}
 
-bool BitcoinExchange::parseData(std::string line){
-    std::string date;
-    std::string value;
-
-    if (line.length() < 14 || line[4] != '-' || line[7] != '-' || line[10] != ' ' 
-        || line[11] != '|' || line[12] != ' ')
-    {
-        finalData.date = "Invalid date";
-        return false;
-    }
-    date = line.substr(0, 11);
-    date = parseDate(date);
-    value = line.substr(13);
-    if (value.find('.') == std::string::npos)
-    {
-        try{
-            finalData.value = convertToInt(value);
+        // Check for potential integer overflow before output
+        if (result > static_cast<double>(INT_MAX)) 
+        {
+            std::cout << std::fixed << std::setprecision(2) << date << " => " << value << " = Overflow" << std::endl;
         }
-        catch (std::exception &e){
-            return false;
+        else
+        {
+            std::cout << std::fixed << std::setprecision(2) << date << " => " << value << " = " << result << std::endl;
         }
     }
-    finalData.date = date;
-    try {
-        finalData.value = convertToFloat(value);
-    }
-    catch (std::exception &e){
-        return false;
-    }
-    return true;
+    file.close();
 }
 
-std::string BitcoinExchange::parseDate(std::string date){
-    int year = convertToInt(date.substr(0, 4));
-    int month = convertToInt(date.substr(5, 2));
-    int day = convertToInt(date.substr(8, 2));
-    if (year < 2009 || (year == 2009 && month == 1 && day < 3))
-        return "Invalid date" + date;
-    if (month < 1 || month > 12)
-        return "Invalid date" + date;
-    if (day < 1 || day > 31)
-        return "Invalid date" + date;
-    if ((month == 4 || month == 6 || month == 9 || month == 11) && day > 30)
-        return "Invalid date" + date;
-    if ((month == 2 && day > 29) || (month == 2 && day > 28 && year % 4 != 0))
-        return "Invalid date" + date;
-    return date;
+/**
+ * @brief Converts string to double with validation
+ * @param str String to convert
+ * @return Converted double value
+ * @throws std::invalid_argument if string is not a valid float value
+ */
+double BitcoinExchange::customStod(const std::string& str) const 
+{
+    std::istringstream iss(str);
+    double result;
+    iss >> result;
+    // Check for any remaining characters after the float value
+    if (iss.fail() || !iss.eof() || iss.peek() != std::char_traits<char>::eof())
+        throw std::invalid_argument("Invalid float value");
+    return result;
 }
 
-// void BitcoinExchange::searchForDate(std::string date){
-//     std::map<std::string, float>::iterator it = _data.find(date);
-//     if (it == _data.end()){
-//         it = _data.upper_bound(date);
-//     }
-//     std::cout << "rate " << it->second << std::endl;
-//     _finnalMap[date].rate = it->second;
-//     _finnalMap[date].finalValue = _finnalMap[date].value * it->second;
-//     std::cout << "date: " << _finnalMap[date].date << " | value: " << _finnalMap[date].value << " | rate: " 
-//     << _finnalMap[date].rate << " | finalValue: " << _finnalMap[date].finalValue << std::endl;
-// }
-
-// std::ofstream &operator<<(std::ofstream &file, BitcoinExchange &src){
-//     src.printFinnalData();
-//     return file;
-// }
-
-// void BitcoinExchange::printFinnalData(){
-//     std::map<std::string, t_finnalData>::iterator it = _finnalMap.begin();
-//     while (it != _finnalMap.end()){
-//         // std::cout << "date: " << it->second.date << " | value: " << it->second.value << " | rate: " << it->second.rate << " | finalValue: " << it->second.finalValue << std::endl;
-//         if (it->second.value < 0)
-//             std::cout << it->second.date << "Negative value" << std::endl;
-//         else if (it->second.date == "Invalid date")
-//             std::cout << it->second.date << std::endl;
-//         else if (it->second.rate < 0)
-//             std::cout << it->second.date << " | " << it->second.value << " | " 
-//             << "Invalid rate" << std::endl;
-//         else
-//             std::cout << it->second.date << " | " << it->second.value << " | " 
-//             << it->second.rate << " | " << it->second.finalValue << std::endl;
-//         it++;
-//     }
-// }
+/**
+ * @brief Converts string to float with validation
+ * @param str String to convert
+ * @return Converted float value
+ * @throws std::invalid_argument if string is not a valid float value
+ */
+float BitcoinExchange::customStof(const std::string& str) const 
+{
+    std::istringstream iss(str);
+    float result;
+    iss >> result;
+    // Check for any remaining characters after the float value
+    if (iss.fail() || !iss.eof() || iss.peek() != std::char_traits<char>::eof())
+        throw std::invalid_argument("Invalid float value");
+    return result;
+}

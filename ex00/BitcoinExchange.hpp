@@ -1,52 +1,33 @@
-#include <fstream>
-#include <iostream>
-#include <string>
+#ifndef BITCOINEXCHANGE_HPP
+#define BITCOINEXCHANGE_HPP
+
 #include <map>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <cstdlib>
+#include <climits> // for INT_MAX
+#include <iomanip> // for std::fixed and std::setprecision
 
-enum e_error {
-    NEGATIVE_VALUE,
-    INVALID_DATE,
-    INVALID_RATE,
-};
 
-typedef struct s_finnalData {
-    std::string date;
-    float value;
-    float rate;
-    float finalValue;
-} t_finnalData;
 
-class BitcoinExchange {
+class BitcoinExchange 
+{
     private:
-        std::string _inputfile;
-        std::map<std::string, float> _data;
-        t_finnalData finalData;
-
+        std::map<std::string, double> btcData;
+        void loadDatabase(const std::string& filename);
+        double customStod(const std::string& str) const;
+        float customStof(const std::string& str) const;
     public:
-        BitcoinExchange(std::map<std::string, float> data, std::string inputfile);
-        BitcoinExchange(const BitcoinExchange &src);
-        BitcoinExchange &operator=(const BitcoinExchange &src);
+        BitcoinExchange();
+        BitcoinExchange(const BitcoinExchange& other);
+        BitcoinExchange& operator=(const BitcoinExchange& other);
         ~BitcoinExchange();
-        void getFinnalData();
-        void readDataFromFile();
-        void getDataFromFile(std::ifstream &file);
-        // void searchForDate(std::string date);
-        // void printFinnalData();
-        bool parseData(std::string line);
-        std::string parseDate(std::string date);
-        class FileError : public std::exception {
-            public:
-                virtual const char* what() const throw() {
-                    return "Ivalid file";
-                }
-        };
 
-        class InvalidInput : public std::exception {
-            public:
-                virtual const char* what() const throw() {
-                    return "Invalid input";
-                }
-        };
+        BitcoinExchange(const std::string& dbFilename);
+
+        void processInput(const std::string& inputFilename) const;
 };
 
-// std::ofstream &operator<<(std::ofstream &file, BitcoinExchange &src);
+#endif
