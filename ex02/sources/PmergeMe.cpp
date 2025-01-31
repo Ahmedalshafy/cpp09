@@ -6,11 +6,12 @@
 /*   By: ahmed <ahmed@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/18 15:18:00 by mcombeau          #+#    #+#             */
-/*   Updated: 2025/01/31 14:23:47 by ahmed            ###   ########.fr       */
+/*   Updated: 2025/01/31 15:32:38 by ahmed            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../PmergeMe.hpp"
+#include "PmergeMe.hpp"
+#include "utils.hpp"
 #include <algorithm>
 #include <iterator>
 #include <list>
@@ -805,4 +806,103 @@ void PmergeMe::_printList( std::list<T> & list, std::string name,
 	std::list<T> * listToPrint = new std::list<T>( list );
 	printContainer( *listToPrint, name, color);
 	delete listToPrint;
+}
+
+std::list<int> & PmergeMe::getSortedList( void )
+{
+    return (*_sortedList);
+}
+
+void PmergeMe::_fillListFromArray( int * array, int array_size )
+{
+    for ( int i = 0; i < array_size; i++ )
+    {
+        _unsortedList->push_back( array[i] );
+    }
+}
+
+void PmergeMe::_insertElement( std::vector< std::pair<int, int> > & splitVector,
+                               std::pair<int, int> element, int n )
+{
+    if ( n < 0 )
+    {
+        splitVector[0] = element;
+    }
+    else if ( element.second >= splitVector[n].second )
+    {
+        int size = splitVector.size();
+        if ( n == size - 1 )
+        {
+            splitVector.push_back( element );
+        }
+        else
+        {
+            splitVector[n + 1] = element;
+        }
+    }
+    else
+    {
+        int size = splitVector.size();
+        if ( n == size - 1 )
+        {
+            splitVector.push_back( splitVector[n] );
+        }
+        else
+        {
+            splitVector[n + 1] = splitVector[n];
+            _insertElement( splitVector, element, n - 1 );
+        }
+    }
+}
+
+void PmergeMe::_insertElement( std::list< std::pair<int, int> > & splitList,
+                               std::pair<int, int> element, int n )
+{
+    std::list< std::pair<int, int> >::iterator it = splitList.begin();
+    std::advance( it, n );
+    std::list< std::pair<int, int> >::iterator next = it;
+    next++;
+
+    if ( n < 0 )
+    {
+        *splitList.begin() = element;
+    }
+    else if ( element.second >= it->second )
+    {
+        int size = splitList.size();
+        if ( n == size - 1 )
+        {
+            splitList.push_back( element );
+        }
+        else
+        {
+            *next = element;
+        }
+    }
+    else
+    {
+        int size = splitList.size();
+        if ( n == size - 1 )
+        {
+            splitList.push_back( *it );
+        }
+        else
+        {
+            *next = *it;
+            _insertElement( splitList, element, n - 1 );
+        }
+    }
+}
+
+std::list<int> PmergeMe::_buildJacobstahlInsertionSequence( std::list<int> pending )
+{
+    std::list<int> jacobSequence;
+    int size = pending.size();
+    int jacobIndex = 3;
+    while ( _getJacobstahlNumber( jacobIndex ) < size - 1 )
+    {
+        jacobSequence.push_back( _getJacobstahlNumber( jacobIndex ) );
+        jacobIndex++;
+    }
+    return ( jacobSequence );
 }
