@@ -18,19 +18,10 @@ RPN& RPN::operator=(const RPN& other) {
 // Destructor - stack is automatically cleaned up
 RPN::~RPN() {}
 
-/**
- * Checks if a given token is a valid operator (+, -, *, /)
- * Used to determine if a token should be processed as an operation
- */
 bool RPN::isOperator(const std::string& token) const {
     return token == "+" || token == "-" || token == "*" || token == "/";
 }
 
-/**
- * Performs the specified arithmetic operation on two operands
- * Note: operands are processed in reverse order due to stack operation
- * Example: For "3 4 -", operand1=3, operand2=4, result=3-4=-1
- */
 int RPN::performOperation(const std::string& operation, int operand1, int operand2) const {
     if (operation == "+") return operand1 + operand2;
     if (operation == "-") return operand1 - operand2;
@@ -44,10 +35,6 @@ int RPN::performOperation(const std::string& operation, int operand1, int operan
     throw std::runtime_error("Invalid operator");
 }
 
-/**
- * Converts a string to an integer with strict validation
- * Ensures the number is between 0 and 9 as per requirements
- */
 int RPN::stringToInt(const std::string& str) const {
     std::stringstream ss(str);
     int result;
@@ -61,15 +48,6 @@ int RPN::stringToInt(const std::string& str) const {
     return result;
 }
 
-/**
- * Main function to evaluate an RPN expression
- * Process:
- * 1. Tokenize the input string
- * 2. For each token:
- *    - If it's a number: push to stack
- *    - If it's an operator: pop two numbers, apply operator, push result
- * 3. Final result is the only number left on stack
- */
 int RPN::evaluate(const std::string& expression) {
     std::istringstream iss(expression);
     std::string token;

@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   PmergeMe.cpp                                       :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: ahmed <ahmed@student.42.fr>                +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/05/18 15:18:00 by mcombeau          #+#    #+#             */
-/*   Updated: 2025/01/31 15:32:38 by ahmed            ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "PmergeMe.hpp"
 #include "utils.hpp"
 #include <algorithm>
@@ -17,16 +5,8 @@
 #include <list>
 #include <vector>
 
-/* ---------------------------------------------------------- SHARED */
-
-/**
- * @brief Default constructor - Creates empty PmergeMe object
- */
 PmergeMe::PmergeMe( void ) {}
 
-/**
- * @brief Destructor - Frees all dynamic memory
- */
 PmergeMe::~PmergeMe( void ) {
 	delete _unsortedVector;
 	delete _sortedVector;
@@ -34,12 +14,6 @@ PmergeMe::~PmergeMe( void ) {
 	delete _sortedList;
 }
 
-/**
- * @brief Main constructor - Initializes with input array
- * @param array Input integers to sort
- * @param array_size Array length
- * @param container VECTOR or LIST
- */
 PmergeMe::PmergeMe( int* array, int array_size, bool container ) : _container( container )
 {
 	_unsortedVector = new std::vector<int>();
@@ -56,32 +30,17 @@ PmergeMe::PmergeMe( int* array, int array_size, bool container ) : _container( c
 	}
 }
 
-/**
- * @brief Copy constructor - Creates a copy of the input PmergeMe object
- * @param src Input PmergeMe object to copy
- */
 PmergeMe::PmergeMe( PmergeMe & src )
 {
 	( void )src;
 }
 
-/**
- * @brief Assignment operator - Assigns the input PmergeMe object to this object
- * @param src Input PmergeMe object to assign
- * @return This PmergeMe object
- */
 PmergeMe & PmergeMe::operator=( PmergeMe & src )
 {
 	( void )src;
 	return ( *this );
 }
 
-/**
- * @brief Main sorting function - Routes to vector or list implementation
- * 
- * Calls the appropriate sorting function based on container type.
- * Uses Ford-Johnson merge-insert sort algorithm for both implementations.
- */
 void PmergeMe::sort( void )
 {
 	if ( _container == VECTOR )
@@ -94,15 +53,6 @@ void PmergeMe::sort( void )
 	}
 }
 
-/**
- * @brief Calculates Jacobsthal numbers for optimal insertion sequence
- * @param n Position in sequence
- * @return nth Jacobsthal number
- * 
- * Sequence: 0,1,1,3,5,11,21,43,...
- * Formula: J(n) = J(n-1) + 2*J(n-2)
- * Used to determine optimal insertion order for pending elements
- */
 int PmergeMe::_getJacobstahlNumber( int n )
 {
 	if ( n == 0 )
@@ -116,22 +66,11 @@ int PmergeMe::_getJacobstahlNumber( int n )
 	return ( _getJacobstahlNumber( n - 1 ) + 2 * _getJacobstahlNumber( n - 2 ) );
 }
 
-/* ---------------------------------------------------------- VECTOR */
-
-/**
- * @brief Gets reference to sorted vector result
- * @return Reference to sorted vector
- */
 std::vector<int> & PmergeMe::getSortedVector( void )
 {
 	return (*_sortedVector);
 }
 
-/**
- * @brief Fills vector container from input array
- * @param array Source array
- * @param array_size Length of array
- */
 void PmergeMe::_fillVectorFromArray( int * array, int array_size )
 {
 	for ( int i = 0; i < array_size; i++ )
@@ -140,18 +79,6 @@ void PmergeMe::_fillVectorFromArray( int * array, int array_size )
 	}
 }
 
-/**
- * @brief Main vector sorting implementation using Ford-Johnson algorithm
- * 
- * Algorithm steps:
- * 1. Check if already sorted
- * 2. Extract straggler if odd length
- * 3. Split into pairs and sort each pair
- * 4. Sort pairs by larger element
- * 5. Create main chain from smaller elements
- * 6. Insert larger elements using Jacobsthal sequence
- * 7. Insert straggler if exists
- */
 void PmergeMe::_sortVector( void )
 {
 	_printVector( *_unsortedVector, "Unsorted", PURPLE );
@@ -179,10 +106,6 @@ void PmergeMe::_sortVector( void )
 	}
 }
 
-/**
- * @brief Checks if vector is already in sorted order
- * @return true if sorted, false otherwise
- */
 bool PmergeMe::_isVectorAlreadySorted( void )
 {
 	std::vector<int>::iterator it = _unsortedVector->begin();
@@ -197,15 +120,6 @@ bool PmergeMe::_isVectorAlreadySorted( void )
 	return ( true );
 }
 
-/**
- * @brief Creates pairs from unsorted vector elements
- * @param unsortedVector Input vector to pair
- * @return Vector of pairs with elements sorted within each pair
- * 
- * Example:
- * Input: [3,1,4,2]
- * Output: [(1,3),(2,4)]
- */
 std::vector< std::pair<int, int> > PmergeMe::_splitIntoPairs( std::vector<int> & unsortedVector )
 {
 	std::vector< std::pair<int, int> > splitVector;
@@ -227,12 +141,6 @@ std::vector< std::pair<int, int> > PmergeMe::_splitIntoPairs( std::vector<int> &
 	return ( splitVector );
 }
 
-/**
- * @brief Sorts elements within each pair
- * @param splitVector Vector of pairs to sort
- * 
- * Ensures smaller element is first in each pair
- */
 void PmergeMe::_sortEachPair( std::vector< std::pair<int, int> > & splitVector )
 {
 	std::vector< std::pair<int, int> >::iterator it = splitVector.begin();
@@ -248,12 +156,6 @@ void PmergeMe::_sortEachPair( std::vector< std::pair<int, int> > & splitVector )
 	_printVector( splitVector, "Split pair", YELLOW );
 }
 
-/**
- * @brief Sorts pairs by their larger elements
- * @param splitVector Vector of pairs to sort
- * 
- * Used to create optimal insertion order for merge step
- */
 void PmergeMe::_sortPairsByLargestValue( std::vector< std::pair<int, int> > & splitVector )
 {
 	int length = splitVector.size();
@@ -261,13 +163,6 @@ void PmergeMe::_sortPairsByLargestValue( std::vector< std::pair<int, int> > & sp
 	_printVector( splitVector, "Split pair", YELLOW );
 }
 
-/**
- * @brief Insertion sort for pairs
- * @param splitVector Vector of pairs to sort
- * @param n Current position to sort up to
- * 
- * Recursively sorts pairs based on their larger elements
- */
 void PmergeMe::_insertionSortPairs( std::vector< std::pair<int, int> > & splitVector, int n )
 {
 	if ( n == 0 )
@@ -283,13 +178,6 @@ void PmergeMe::_insertionSortPairs( std::vector< std::pair<int, int> > & splitVe
 	}
 }
 
-/**
- * @brief Handles straggler element for odd-length sequences
- * @param unsortedVector Vector to extract straggler from
- * 
- * If sequence length is odd, removes and stores last element
- * for later insertion
- */
 void PmergeMe::_extractStraggler( std::vector<int> & unsortedVector )
 {
 	_straggler = unsortedVector.back();
@@ -302,12 +190,6 @@ void PmergeMe::_extractStraggler( std::vector<int> & unsortedVector )
 	}
 }
 
-/**
- * @brief Inserts straggler into final position
- * @param sortedVector Sorted vector to insert straggler into
- * 
- * Uses binary search to find correct position for straggler
- */
 void PmergeMe::_insertStraggler( std::vector<int> & sortedVector )
 {
 	if (VERBOSE)
@@ -322,14 +204,6 @@ void PmergeMe::_insertStraggler( std::vector<int> & sortedVector )
 	}
 }
 
-/**
- * @brief Binary search implementation
- * @param vector Sorted vector to search in
- * @param x Element to find position for
- * @return Index where x should be inserted
- * 
- * Used to efficiently find insertion points
- */
 int PmergeMe::_bisect( std::vector<int> vector, int x )
 {
 	int lo = 0;
@@ -352,13 +226,6 @@ int PmergeMe::_bisect( std::vector<int> vector, int x )
 	return ( lo );
 }
 
-/**
- * @brief Creates main chain from sorted pairs
- * @param splitVector Sorted vector of pairs
- * 
- * Builds initial sorted sequence using smaller elements,
- * preparing for insertion of larger elements
- */
 void PmergeMe::_createSortedSequence( std::vector< std::pair<int, int> > & splitVector )
 {
 	std::vector<int> pending;
@@ -452,14 +319,6 @@ std::vector<int> PmergeMe::_buildJacobstahlInsertionSequence( int size )
 	return ( jacobSequence );
 }
 
-/**
- * @brief Prints vector contents
- * @param vector Vector to print
- * @param name Name of vector
- * @param color Color to print in
- * 
- * Used for debugging and visualization
- */
 template <typename T>
 void PmergeMe::_printVector( std::vector<T> & vector, std::string name,
                              std::string color )
@@ -473,19 +332,6 @@ void PmergeMe::_printVector( std::vector<T> & vector, std::string name,
 	delete vectorToPrint;
 }
 
-/* ---------------------------------------------------------- LIST */
-
-/**
- * @brief Main list sorting implementation
- * 
- * Follows same algorithm as vector version:
- * 1. Check if sorted
- * 2. Handle odd length
- * 3. Split into pairs
- * 4. Sort pairs
- * 5. Create main chain
- * 6. Insert pending elements
- */
 void PmergeMe::_sortList( void )
 {
 	_printList( *_unsortedList, "Unsorted", PURPLE );
@@ -513,10 +359,6 @@ void PmergeMe::_sortList( void )
 	}
 }
 
-/**
- * @brief Checks if list is already in sorted order
- * @return true if sorted, false otherwise
- */
 bool PmergeMe::_isListAlreadySorted( void )
 {
 	std::list<int>::iterator it = _unsortedList->begin();
@@ -532,15 +374,6 @@ bool PmergeMe::_isListAlreadySorted( void )
 	return ( true );
 }
 
-/**
- * @brief Creates pairs from unsorted list elements
- * @param unsortedList Input list to pair
- * @return List of pairs with elements sorted within each pair
- * 
- * Example:
- * Input: [3,1,4,2]
- * Output: [(1,3),(2,4)]
- */
 std::list< std::pair<int, int> > PmergeMe::_splitIntoPairs( std::list<int> & unsortedList )
 {
 	std::list< std::pair<int, int> > splitList;
@@ -562,12 +395,6 @@ std::list< std::pair<int, int> > PmergeMe::_splitIntoPairs( std::list<int> & uns
 	return ( splitList );
 }
 
-/**
- * @brief Sorts elements within each pair
- * @param splitList List of pairs to sort
- * 
- * Ensures smaller element is first in each pair
- */
 void PmergeMe::_sortEachPair( std::list< std::pair<int, int> > & splitList )
 {
 	std::list< std::pair<int, int> >::iterator it = splitList.begin();
@@ -583,12 +410,6 @@ void PmergeMe::_sortEachPair( std::list< std::pair<int, int> > & splitList )
 	_printList( splitList, "Split pair", YELLOW );
 }
 
-/**
- * @brief Sorts pairs by their larger elements
- * @param splitList List of pairs to sort
- * 
- * Used to create optimal insertion order for merge step
- */
 void PmergeMe::_sortPairsByLargestValue( std::list< std::pair<int, int> > & splitList )
 {
 	int length = splitList.size();
@@ -596,13 +417,6 @@ void PmergeMe::_sortPairsByLargestValue( std::list< std::pair<int, int> > & spli
 	_printList( splitList, "Split pair", YELLOW );
 }
 
-/**
- * @brief Insertion sort for pairs
- * @param splitList List of pairs to sort
- * @param n Current position to sort up to
- * 
- * Recursively sorts pairs based on their larger elements
- */
 void PmergeMe::_insertionSortPairs( std::list< std::pair<int, int> > & splitList, int n )
 {
 	if ( n == 0 )
@@ -618,13 +432,6 @@ void PmergeMe::_insertionSortPairs( std::list< std::pair<int, int> > & splitList
 	}
 }
 
-/**
- * @brief Handles straggler element for odd-length sequences
- * @param unsortedList List to extract straggler from
- * 
- * If sequence length is odd, removes and stores last element
- * for later insertion
- */
 void PmergeMe::_extractStraggler( std::list<int> & unsortedList )
 {
 	_straggler = unsortedList.back();
@@ -637,12 +444,6 @@ void PmergeMe::_extractStraggler( std::list<int> & unsortedList )
 	}
 }
 
-/**
- * @brief Inserts straggler into final position
- * @param sortedList Sorted list to insert straggler into
- * 
- * Uses binary search to find correct position for straggler
- */
 void PmergeMe::_insertStraggler( std::list<int> & sortedList )
 {
 	if (VERBOSE)
@@ -657,13 +458,6 @@ void PmergeMe::_insertStraggler( std::list<int> & sortedList )
 	}
 }
 
-/**
- * @brief Creates main chain from sorted pairs
- * @param splitList Sorted list of pairs
- * 
- * Builds initial sorted sequence using smaller elements,
- * preparing for insertion of larger elements
- */
 void PmergeMe::_createSortedSequence( std::list< std::pair<int, int> > & splitList )
 {
 	std::list<int> pending;
@@ -738,13 +532,6 @@ std::list<int> PmergeMe::_createIndexInsertSequence( std::list<int> pending )
 	return (indexSequence);
 }
 
-/**
- * @brief Inserts element at bisected index
- * @param list List to insert into
- * @param element Element to insert
- * 
- * Uses binary search to find correct position for element
- */
 void PmergeMe::_insertAtBisectedIndex( std::list<int> & list, int element )
 {
 	if (VERBOSE)
@@ -757,14 +544,6 @@ void PmergeMe::_insertAtBisectedIndex( std::list<int> & list, int element )
 	list.insert( it, element );
 }
 
-/**
- * @brief Binary search implementation
- * @param list Sorted list to search in
- * @param x Element to find position for
- * @return Index where x should be inserted
- * 
- * Used to efficiently find insertion points
- */
 int PmergeMe::_bisect( std::list<int> list, int x )
 {
 	int lo = 0;
@@ -787,14 +566,6 @@ int PmergeMe::_bisect( std::list<int> list, int x )
 	return ( lo );
 }
 
-/**
- * @brief Prints list contents
- * @param list List to print
- * @param name Name of list
- * @param color Color to print in
- * 
- * Used for debugging and visualization
- */
 template <typename T>
 void PmergeMe::_printList( std::list<T> & list, std::string name,
                              std::string color )
